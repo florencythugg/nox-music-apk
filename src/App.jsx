@@ -82,235 +82,301 @@ const NOX_ORIGINAL_TRACKS = [
     album: 'Nocturne EP',
     releaseDate: '2024-06-21T00:00:00Z',
     duration: 242,
-    genre: 'Downtempo',
-    coverGradient: 'from-rose-600 via-fuchsia-800 to-neutral-950',
+    genre: 'Ambient Chill',
+    coverGradient: 'from-sky-700 via-indigo-900 to-zinc-950',
     artworkUrl: null,
     source: 'synth',
-    tempo: 74,
+    tempo: 78,
     chords: [
-      [261.63, 329.63, 392.0, 493.88],
-      [220.0, 261.63, 329.63, 392.0],
       [174.61, 220.0, 261.63, 329.63],
-      [196.0, 246.94, 293.66, 392.0]
+      [146.83, 174.61, 220.0, 293.66],
+      [130.81, 164.81, 196.0, 246.94],
+      [146.83, 174.61, 220.0, 261.63]
     ]
   },
   {
     id: 'nox-orig-4',
-    title: 'Midnight Autobahn',
-    artist: 'Klangwerk',
+    title: 'Solar Drift',
+    artist: 'Nox Sound Lab',
     rawArtistId: null,
-    album: 'Berlin 03:00',
-    releaseDate: '2023-09-15T00:00:00Z',
-    duration: 265,
-    genre: 'Minimal Electronic',
-    coverGradient: 'from-blue-600 via-cyan-800 to-slate-950',
+    album: 'Midnight Sessions Vol. 1',
+    releaseDate: '2025-01-19T00:00:00Z',
+    duration: 226,
+    genre: 'Deep Synth',
+    coverGradient: 'from-fuchsia-700 via-purple-900 to-slate-950',
     artworkUrl: null,
     source: 'synth',
-    tempo: 112,
+    tempo: 102,
     chords: [
-      [146.83, 220.0, 261.63, 329.63],
-      [130.81, 196.0, 246.94, 293.66],
-      [110.0, 164.81, 196.0, 261.63],
-      [130.81, 196.0, 246.94, 329.63]
+      [220.0, 261.63, 329.63, 440.0],
+      [196.0, 246.94, 293.66, 392.0],
+      [174.61, 220.0, 261.63, 349.23],
+      [196.0, 246.94, 293.66, 349.23]
     ]
   }
 ];
 
+const GENRE_FILTERS = [
+  { id: 'all', label: 'Все хиты' },
+  { id: 'Pop', label: 'Pop' },
+  { id: 'Hip-Hop/Rap', label: 'Hip-Hop / Rap' },
+  { id: 'Electronic', label: 'Electronic' },
+  { id: 'R&B/Soul', label: 'R&B / Soul' },
+  { id: 'Rock', label: 'Rock' }
+];
+
 const CURATED_MOODS = [
   {
-    id: 'mood-energy',
-    title: 'Энергия дня',
-    subtitle: 'Бодрые хиты и поп-новинки',
-    query: 'The Weeknd',
-    gradient: 'from-amber-500/30 via-orange-600/20 to-zinc-900 border-amber-500/30'
+    id: 'mood-night',
+    title: 'Ночной драйв',
+    subtitle: 'Глубокий ритм и атмосфера',
+    query: 'The Weeknd Blinding Lights',
+    gradient: 'from-indigo-600/35 via-purple-700/20 to-zinc-900/90 border-indigo-500/30'
+  },
+  {
+    id: 'mood-hits',
+    title: 'Мировые чарты',
+    subtitle: 'Главные треки прямо сейчас',
+    query: 'Travis Scott FE!N',
+    gradient: 'from-rose-600/35 via-amber-600/20 to-zinc-900/90 border-rose-500/30'
   },
   {
     id: 'mood-ru',
     title: 'Русский вайб',
-    subtitle: 'Главные треки чартов',
-    query: 'Miyagi & Эндшпиль',
-    gradient: 'from-indigo-500/30 via-violet-600/20 to-zinc-900 border-indigo-500/30'
-  },
-  {
-    id: 'mood-night',
-    title: 'Ночной драйв',
-    subtitle: 'Атмосферный хип-хоп и R&B',
-    query: 'Travis Scott',
-    gradient: 'from-cyan-500/30 via-blue-600/20 to-zinc-900 border-cyan-500/30'
+    subtitle: 'Топовые исполнители и релизы',
+    query: 'Miyagi Эндшпиль',
+    gradient: 'from-emerald-600/35 via-teal-700/20 to-zinc-900/90 border-emerald-500/30'
   },
   {
     id: 'mood-chill',
-    title: 'Вечерний чилл',
-    subtitle: 'Мягкое звучание для отдыха',
-    query: 'Lana Del Rey',
-    gradient: 'from-rose-500/30 via-pink-600/20 to-zinc-900 border-rose-500/30'
+    title: 'Спокойный фокус',
+    subtitle: 'Для работы, отдыха и мыслей',
+    query: 'Fred again.. Billie',
+    gradient: 'from-sky-600/35 via-cyan-700/20 to-zinc-900/90 border-sky-500/30'
   }
 ];
 
-const GENRE_FILTERS = [
-  { id: 'all', label: 'Всё' },
-  { id: 'Hip-Hop/Rap', label: 'Хип-хоп' },
-  { id: 'Pop', label: 'Поп' },
-  { id: 'Electronic', label: 'Электроника' },
-  { id: 'Rock', label: 'Рок' },
-  { id: 'R&B/Soul', label: 'R&B' }
-];
-
-// --- УНИВЕРСАЛЬНЫЙ HTTP-КЛИЕНТ (НАТИВНЫЙ CAPACITOR БЕЗ CORS В APK + ОБЫЧНЫЙ FETCH В БРАУЗЕРЕ) ---
-const isNativeCapacitor = () =>
-  typeof window !== 'undefined' &&
-  Boolean(window.Capacitor?.isNativePlatform?.() || window.Capacitor?.Plugins?.CapacitorHttp);
-
-async function nativeGetJson(url, params = {}, headers = {}) {
-  const queryStr = new URLSearchParams(params).toString();
-  const fullUrl = queryStr ? `${url}${url.includes('?') ? '&' : '?'}${queryStr}` : url;
-
-  const capHttp = typeof window !== 'undefined' ? window.Capacitor?.Plugins?.CapacitorHttp : null;
-  if (capHttp && typeof capHttp.get === 'function') {
-    const res = await capHttp.get({
-      url: fullUrl,
-      headers: {
-        Accept: 'application/json',
-        ...headers
-      }
-    });
-    if (res.status >= 200 && res.status < 300) {
-      return typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
-    }
-    throw new Error(`HTTP ${res.status}`);
-  }
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5000);
+// --- НАТИВНЫЙ HTTP-КЛИЕНТ (CAPACITOR APK БЕЗ CORS + FALLBACK НА FETCH) ---
+const isNativeCapacitor = () => {
   try {
-    const res = await fetch(fullUrl, { headers, signal: controller.signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } finally {
-    clearTimeout(timer);
+    return Boolean(
+      window?.Capacitor &&
+        typeof window.Capacitor.isNativePlatform === 'function' &&
+        window.Capacitor.isNativePlatform()
+    );
+  } catch {
+    return false;
   }
-}
+};
 
-async function nativePostJson(url, body = {}, headers = {}) {
-  const capHttp = typeof window !== 'undefined' ? window.Capacitor?.Plugins?.CapacitorHttp : null;
-  if (capHttp && typeof capHttp.post === 'function') {
-    const res = await capHttp.post({
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        ...headers
-      },
-      data: body
-    });
-    if (res.status >= 200 && res.status < 300) {
-      return typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
-    }
-    throw new Error(`HTTP ${res.status}`);
-  }
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 6000);
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-// --- ПОИСК ПОЛНОГО ТРЕКА НАПРЯМУЮ С ТЕЛЕФОНА (YOUTUBE INNERTUBE + AUDIUS) ---
 const normalizeText = (s) =>
   (s || '')
     .toLowerCase()
     .replace(/ё/g, 'е')
-    .replace(/\s*[\(\[].*?[\)\]]/g, '')
-    .replace(/[^a-zа-я0-9\s]/gi, ' ')
+    .replace(/\s*[\(\[].*?[\)\]]/g, ' ')
+    .replace(/[^\wа-я0-9\s]/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
-const isStrictSongMatch = (candTitle, candArtist, targetArtist, targetTitle) => {
+async function nativeGetJson(url, params = {}) {
+  const queryString = new URLSearchParams(params).toString();
+  const fullUrl = queryString ? `${url}?${queryString}` : url;
+
+  if (isNativeCapacitor() && window.Capacitor?.Plugins?.CapacitorHttp) {
+    try {
+      const res = await window.Capacitor.Plugins.CapacitorHttp.get({
+        url: fullUrl,
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36'
+        }
+      });
+      if (res && res.status >= 200 && res.status < 300) {
+        return typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
+      }
+    } catch {}
+  }
+
+  const response = await fetch(fullUrl);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
+async function nativePostJson(url, bodyObj, extraHeaders = {}) {
+  if (isNativeCapacitor() && window.Capacitor?.Plugins?.CapacitorHttp) {
+    try {
+      const res = await window.Capacitor.Plugins.CapacitorHttp.post({
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36',
+          ...extraHeaders
+        },
+        data: bodyObj
+      });
+      if (res && res.status >= 200 && res.status < 300) {
+        return typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
+      }
+    } catch {}
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...extraHeaders
+    },
+    body: JSON.stringify(bodyObj)
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
+const isStrictSongMatch = (candTitle, candArtist, targetArtist, targetTitle, targetDurationSec = 0, candDurationSec = 0) => {
   const hay = `${normalizeText(candTitle)} ${normalizeText(candArtist)}`;
+  const nCandTitle = normalizeText(candTitle);
   const nt = normalizeText(targetTitle);
   const na = normalizeText(targetArtist);
   if (!nt) return false;
 
-  const banned = ['karaoke', 'караоке', 'cover', 'кавер', 'instrumental', 'минус', 'slowed', 'nightcore', '8d', 'reaction', 'реакция'];
+  // Жёстко отсекаем каверы, ремиксы, караоке, ускоренные версии и левые ролики
+  const banned = [
+    'karaoke', 'караоке', 'cover', 'кавер', 'instrumental', 'минус',
+    'slowed', 'reverb', 'nightcore', 'speed up', 'sped up', '8d',
+    'reaction', 'реакция', 'tutorial', 'разбор', 'табы', 'аккорды',
+    'parody', 'пародия', 'teaser', 'тизер', 'trailer', 'трейлер',
+    'concert', 'концерт', 'interview', 'интервью', 'podcast', 'подкаст'
+  ];
   for (const b of banned) {
     if (hay.includes(b) && !nt.includes(b)) return false;
   }
 
+  // Если не просили remix/live — отсекаем ремиксы и лайвы
+  if (!nt.includes('remix') && !nt.includes('ремикс') && (hay.includes('remix') || hay.includes('ремикс'))) {
+    return false;
+  }
+  if (!nt.includes('live') && (nCandTitle.includes(' live') || nCandTitle.includes('(live'))) {
+    return false;
+  }
+
+  // Сверка длительности (±35 сек от оригинала — гарантированно отсекает чужие видео и 10-часовые версии)
+  if (targetDurationSec > 30 && candDurationSec > 0) {
+    if (Math.abs(targetDurationSec - candDurationSec) > 35) {
+      return false;
+    }
+  }
+
+  // Проверяем точное совпадение всех значимых слов названия трека (минимум 85%)
   const tWords = nt.split(' ').filter((w) => w.length >= 2);
   if (tWords.length > 0) {
     const hits = tWords.filter((w) => hay.includes(w)).length;
-    if (hits / tWords.length < 0.7) return false;
+    if (hits / tWords.length < 0.85) return false;
   } else if (!hay.includes(nt)) {
     return false;
   }
 
+  // Проверяем совпадение артиста (игнорируем стоп-слова вроде "the", "lil", "dj")
   if (na) {
-    const aWords = na.split(' ').filter((w) => w.length >= 2);
-    if (aWords.length > 0 && !aWords.some((w) => hay.includes(w))) return false;
+    const stopWords = new Set(['the', 'lil', 'dj', 'mc', 'mr', 'ms', 'and', 'feat', 'ft']);
+    const aWords = na.split(' ').filter((w) => w.length >= 2 && !stopWords.has(w));
+    if (aWords.length > 0) {
+      const artistHits = aWords.filter((w) => hay.includes(w)).length;
+      if (artistHits === 0) return false;
+    } else if (!hay.includes(na)) {
+      return false;
+    }
   }
   return true;
 };
 
-function extractVideoIdsFromYtSearch(data, artist, title) {
-  const ids = [];
-  const seen = new Set();
+const parseDurationTextToSec = (txt) => {
+  if (!txt || typeof txt !== 'string') return 0;
+  const parts = txt.trim().split(':').map(Number);
+  if (parts.some(isNaN)) return 0;
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return 0;
+};
 
-  const walk = (node) => {
-    if (!node || typeof node !== 'object') return;
+function extractVideoIdsFromYtSearch(data, artist, title, targetDurationSec = 0) {
+  const scored = [];
+  const seen = new Set();
+  const na = normalizeText(artist);
+
+  const walk = (node, depth = 0) => {
+    if (!node || typeof node !== 'object' || depth > 14) return;
+
     if (node.videoRenderer && node.videoRenderer.videoId) {
       const vid = node.videoRenderer.videoId;
       const vTitle = node.videoRenderer.title?.runs?.map((r) => r.text).join('') || '';
       const vAuthor = node.videoRenderer.ownerText?.runs?.map((r) => r.text).join('') || '';
-      if (!seen.has(vid) && isStrictSongMatch(vTitle, vAuthor, artist, title)) {
+      const lenText = node.videoRenderer.lengthText?.simpleText || '';
+      const candSec = parseDurationTextToSec(lenText);
+
+      if (!seen.has(vid) && isStrictSongMatch(vTitle, vAuthor, artist, title, targetDurationSec, candSec)) {
         seen.add(vid);
-        ids.push(vid);
+        let score = 0;
+        const normAuthor = normalizeText(vAuthor);
+        const normTitle = normalizeText(vTitle);
+        if (normAuthor.includes('topic') || normAuthor.includes(na)) score += 50;
+        if (normTitle.includes('official audio') || normTitle.includes('audio')) score += 30;
+        if (targetDurationSec > 0 && candSec > 0) {
+          score -= Math.abs(targetDurationSec - candSec);
+        }
+        scored.push({ vid, score });
       }
+      return;
     }
+
     if (node.musicResponsiveListItemRenderer) {
       const flex = node.musicResponsiveListItemRenderer.flexColumns || [];
       const vTitle = flex[0]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.map((r) => r.text).join('') || '';
-      const vAuthor = flex[1]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.map((r) => r.text).join('') || '';
+      const runs1 = flex[1]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs || [];
+      const vAuthor = runs1.map((r) => r.text).join('');
+      const lastRunText = runs1[runs1.length - 1]?.text || '';
+      const candSec = parseDurationTextToSec(lastRunText);
       const vid =
         node.musicResponsiveListItemRenderer.playlistItemData?.videoId ||
         node.musicResponsiveListItemRenderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId;
-      if (vid && !seen.has(vid) && isStrictSongMatch(vTitle, vAuthor, artist, title)) {
+
+      if (vid && !seen.has(vid) && isStrictSongMatch(vTitle, vAuthor, artist, title, targetDurationSec, candSec)) {
         seen.add(vid);
-        ids.push(vid);
+        let score = 80;
+        if (targetDurationSec > 0 && candSec > 0) {
+          score -= Math.abs(targetDurationSec - candSec);
+        }
+        scored.push({ vid, score });
       }
+      return;
     }
+
     if (Array.isArray(node)) {
-      node.forEach(walk);
+      node.forEach((item) => walk(item, depth + 1));
     } else {
-      Object.values(node).forEach(walk);
+      Object.values(node).forEach((val) => walk(val, depth + 1));
     }
   };
 
-  walk(data);
-  return ids.slice(0, 5);
+  walk(data, 0);
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, 6).map((s) => s.vid);
 }
 
 async function resolveYtPlayerAudio(videoId) {
   const clients = [
     {
       endpoint: 'https://music.youtube.com/youtubei/v1/player?prettyPrint=false',
-      userAgent: 'com.google.android.apps.youtube.music/6.42.52 (Linux; U; Android 14; en_US) gzip',
+      clientId: '21',
+      userAgent: 'com.google.android.apps.youtube.music/7.02.52 (Linux; U; Android 14; en_US) gzip',
       context: {
         client: {
           clientName: 'ANDROID_MUSIC',
-          clientVersion: '6.42.52',
+          clientVersion: '7.02.52',
           androidSdkVersion: 34,
           hl: 'ru',
           gl: 'RU'
@@ -319,25 +385,43 @@ async function resolveYtPlayerAudio(videoId) {
     },
     {
       endpoint: 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false',
-      userAgent: 'com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X)',
-      context: {
-        client: {
-          clientName: 'IOS',
-          clientVersion: '19.29.1',
-          deviceModel: 'iPhone16,2',
-          hl: 'ru',
-          gl: 'RU'
-        }
-      }
-    },
-    {
-      endpoint: 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false',
-      userAgent: 'com.google.android.youtube/19.29.37 (Linux; U; Android 14; en_US) gzip',
+      clientId: '3',
+      userAgent: 'com.google.android.youtube/19.35.36 (Linux; U; Android 14; en_US) gzip',
       context: {
         client: {
           clientName: 'ANDROID',
-          clientVersion: '19.29.37',
+          clientVersion: '19.35.36',
           androidSdkVersion: 34,
+          hl: 'ru',
+          gl: 'RU'
+        }
+      }
+    },
+    {
+      endpoint: 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false',
+      clientId: '85',
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      context: {
+        client: {
+          clientName: 'TVHTML5_SIMPLY_EMBEDDED_PLAYER',
+          clientVersion: '2.0',
+          hl: 'ru',
+          gl: 'RU'
+        },
+        thirdParty: {
+          embedUrl: 'https://www.youtube.com/'
+        }
+      }
+    },
+    {
+      endpoint: 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false',
+      clientId: '5',
+      userAgent: 'com.google.ios.youtube/19.35.3 (iPhone16,2; U; CPU iOS 17_6 like Mac OS X)',
+      context: {
+        client: {
+          clientName: 'IOS',
+          clientVersion: '19.35.3',
+          deviceModel: 'iPhone16,2',
           hl: 'ru',
           gl: 'RU'
         }
@@ -357,7 +441,7 @@ async function resolveYtPlayerAudio(videoId) {
         },
         {
           'User-Agent': cfg.userAgent,
-          'X-YouTube-Client-Name': cfg.context.client.clientName === 'ANDROID_MUSIC' ? '21' : cfg.context.client.clientName === 'IOS' ? '5' : '3',
+          'X-YouTube-Client-Name': cfg.clientId,
           'X-YouTube-Client-Version': cfg.context.client.clientVersion
         }
       );
@@ -367,7 +451,6 @@ async function resolveYtPlayerAudio(videoId) {
         ...(playerRes?.streamingData?.formats || [])
       ];
 
-      // Выбираем прямой аудиопоток без шифрования signatureCipher (itag 140 m4a или webm audio)
       const audioFormats = formats.filter(
         (f) =>
           f.url &&
@@ -376,25 +459,26 @@ async function resolveYtPlayerAudio(videoId) {
       );
 
       if (audioFormats.length > 0) {
-        // Предпочитаем audio/mp4 (m4a / AAC), который идеально играет в Android WebView <audio>
         audioFormats.sort((a, b) => {
           const aMp4 = String(a.mimeType).includes('audio/mp4') ? 1 : 0;
           const bMp4 = String(b.mimeType).includes('audio/mp4') ? 1 : 0;
           if (aMp4 !== bMp4) return bMp4 - aMp4;
           return (b.bitrate || 0) - (a.bitrate || 0);
         });
-        return audioFormats[0].url;
+        return audioFormats.map((f) => f.url);
       }
     } catch {}
   }
 
-  return null;
+  return [];
 }
 
-async function resolveFullAudioDirect(artist, title) {
-  const q = `${artist} - ${title}`.replace(/^[\s-]+|[\s-]+$/g, '');
+async function resolveFullAudioDirect(artist, title, targetDurationSec = 0) {
+  const cleanTitle = (title || '').replace(/\s*[\(\[].*?[\)\]]/g, '').trim() || title;
+  const q = `${artist} - ${cleanTitle}`.replace(/^[\s-]+|[\s-]+$/g, '');
+  const candidateUrls = [];
 
-  // Канал 1: Прямой поиск через мобильный YouTube Music InnerTube API (с IP телефона без CORS!)
+  // Канал 1: Прямой поиск через YouTube Music InnerTube API
   try {
     const ytMusicSearch = await nativePostJson(
       'https://music.youtube.com/youtubei/v1/search?prettyPrint=false',
@@ -402,7 +486,7 @@ async function resolveFullAudioDirect(artist, title) {
         context: {
           client: {
             clientName: 'WEB_REMIX',
-            clientVersion: '1.20240724.01.00',
+            clientVersion: '1.20240819.01.00',
             hl: 'ru',
             gl: 'RU'
           }
@@ -416,58 +500,48 @@ async function resolveFullAudioDirect(artist, title) {
       }
     );
 
-    const musicIds = extractVideoIdsFromYtSearch(ytMusicSearch, artist, title);
-    for (const vid of musicIds) {
-      const directUrl = await resolveYtPlayerAudio(vid);
-      if (directUrl) {
-        return { url: directUrl, label: 'YT Music Full' };
+    const musicIds = extractVideoIdsFromYtSearch(ytMusicSearch, artist, cleanTitle, targetDurationSec);
+    for (const vid of musicIds.slice(0, 3)) {
+      const urls = await resolveYtPlayerAudio(vid);
+      if (urls.length > 0) {
+        candidateUrls.push(...urls);
+        break;
       }
     }
   } catch {}
 
   // Канал 2: Обычный поиск YouTube InnerTube API
-  try {
-    const ytWebSearch = await nativePostJson(
-      'https://www.youtube.com/youtubei/v1/search?prettyPrint=false',
-      {
-        context: {
-          client: {
-            clientName: 'WEB',
-            clientVersion: '2.20240725.01.00',
-            hl: 'ru',
-            gl: 'RU'
-          }
-        },
-        query: `${q} official audio`
-      }
-    );
+  if (candidateUrls.length === 0) {
+    try {
+      const ytWebSearch = await nativePostJson(
+        'https://www.youtube.com/youtubei/v1/search?prettyPrint=false',
+        {
+          context: {
+            client: {
+              clientName: 'WEB',
+              clientVersion: '2.20240820.01.00',
+              hl: 'ru',
+              gl: 'RU'
+            }
+          },
+          query: `${q} audio`
+        }
+      );
 
-    const webIds = extractVideoIdsFromYtSearch(ytWebSearch, artist, title);
-    for (const vid of webIds) {
-      const directUrl = await resolveYtPlayerAudio(vid);
-      if (directUrl) {
-        return { url: directUrl, label: 'YouTube Full' };
+      const webIds = extractVideoIdsFromYtSearch(ytWebSearch, artist, cleanTitle, targetDurationSec);
+      for (const vid of webIds.slice(0, 3)) {
+        const urls = await resolveYtPlayerAudio(vid);
+        if (urls.length > 0) {
+          candidateUrls.push(...urls);
+          break;
+        }
       }
-    }
-  } catch {}
+    } catch {}
+  }
 
-  // Канал 3: Audius Open Stream (резерв)
-  try {
-    const au = await nativeGetJson('https://discoveryprovider.audius.co/v1/tracks/search', {
-      query: `${artist} ${title}`.trim(),
-      limit: '5'
-    });
-    for (const item of au?.data || []) {
-      const tName = item.title || '';
-      const uName = item.user?.name || '';
-      if (isStrictSongMatch(tName, uName, artist, title) && item.id) {
-        return {
-          url: `https://discoveryprovider.audius.co/v1/tracks/${item.id}/stream`,
-          label: 'Full Stream'
-        };
-      }
-    }
-  } catch {}
+  if (candidateUrls.length > 0) {
+    return { urls: Array.from(new Set(candidateUrls)), label: 'Full HQ' };
+  }
 
   return null;
 }
@@ -907,16 +981,20 @@ export default function App() {
           .map((track) => {
             const titleN = normalizeName(track.title);
             const artistN = normalizeName(track.artist);
+            const combined = `${artistN} ${titleN}`;
             let score = 0;
 
-            if (titleN === qLower || artistN === qLower) score += 100;
-            else if (titleN.startsWith(qLower) || artistN.startsWith(qLower)) score += 60;
-            else if (titleN.includes(qLower) || artistN.includes(qLower)) score += 35;
+            if (titleN === qLower) score += 150;
+            else if (artistN === qLower) score += 130;
+            else if (titleN.startsWith(qLower)) score += 90;
+            else if (artistN.startsWith(qLower)) score += 75;
+            else if (titleN.includes(qLower) || artistN.includes(qLower)) score += 50;
 
-            const matchedWords = qWords.filter(
-              (w) => titleN.includes(w) || artistN.includes(w)
-            ).length;
-            score += matchedWords * 15;
+            const matchedWords = qWords.filter((w) => combined.includes(w)).length;
+            if (qWords.length > 1 && matchedWords < qWords.length) {
+              score -= (qWords.length - matchedWords) * 35;
+            }
+            score += matchedWords * 25;
 
             return { track, score };
           })
@@ -1261,18 +1339,33 @@ export default function App() {
         const cacheKey = `${normalizeText(currentTrack.artist)}::${normalizeText(currentTrack.title)}`;
         let resolved = fullStreamCacheRef.current.get(cacheKey);
         if (!resolved) {
-          resolved = await resolveFullAudioDirect(currentTrack.artist, currentTrack.title);
+          resolved = await resolveFullAudioDirect(
+            currentTrack.artist,
+            currentTrack.title,
+            currentTrack.duration || 0
+          );
           if (resolved) {
             fullStreamCacheRef.current.set(cacheKey, resolved);
           }
         }
         if (cancelled || reqId !== playRequestIdRef.current) return;
 
-        if (resolved?.url && audioEl) {
-          setActiveStreamLabel(resolved.label || 'Full HQ');
-          audioEl.src = resolved.url;
-          audioEl.onerror = () => playPreviewFallback();
-          audioEl.play().then(() => setIsBuffering(false)).catch(() => playPreviewFallback());
+        if (resolved?.urls?.length > 0 && audioEl) {
+          let urlIdx = 0;
+          const tryNextUrl = () => {
+            if (cancelled || reqId !== playRequestIdRef.current) return;
+            if (urlIdx >= resolved.urls.length) {
+              fullStreamCacheRef.current.delete(cacheKey);
+              playPreviewFallback();
+              return;
+            }
+            const nextUrl = resolved.urls[urlIdx++];
+            setActiveStreamLabel(resolved.label || 'Full HQ');
+            audioEl.src = nextUrl;
+            audioEl.onerror = () => tryNextUrl();
+            audioEl.play().then(() => setIsBuffering(false)).catch(() => tryNextUrl());
+          };
+          tryNextUrl();
           return;
         }
       }

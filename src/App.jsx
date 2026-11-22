@@ -165,7 +165,6 @@ async function nativeGetJson(url, params = {}, headers = {}) {
   const queryStr = new URLSearchParams(params).toString();
   const fullUrl = queryStr ? `${url}${url.includes('?') ? '&' : '?'}${queryStr}` : url;
 
-  // 1. Внутри собранного Android .apk используем нативный CapacitorHttp (работает напрямую с IP телефона без CORS!)
   const capHttp = typeof window !== 'undefined' ? window.Capacitor?.Plugins?.CapacitorHttp : null;
   if (capHttp && typeof capHttp.get === 'function') {
     const res = await capHttp.get({
@@ -181,7 +180,6 @@ async function nativeGetJson(url, params = {}, headers = {}) {
     throw new Error(`HTTP ${res.status}`);
   }
 
-  // 2. В веб-браузере используем обычный fetch с таймаутом
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 5000);
   try {
@@ -193,19 +191,44 @@ async function nativeGetJson(url, params = {}, headers = {}) {
   }
 }
 
-// --- ПОИСК ПОЛНОГО ТРЕКА НАПРЯМУЮ С УСТРОЙСТВА (ДЛЯ ANDROID APK БЕЗ СЕРВЕРА) ---
-const PIPED_NODES = [
-  'https://pipedapi.kavin.rocks',
-  'https://api.piped.private.coffee',
-  'https://pipedapi.adminforge.de',
-  'https://pipedapi.drgns.space'
-];
+async function nativePostJson(url, body = {}, headers = {}) {
+  const capHttp = typeof window !== 'undefined' ? window.Capacitor?.Plugins?.CapacitorHttp : null;
+  if (capHttp && typeof capHttp.post === 'function') {
+    const res = await capHttp.post({
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...headers
+      },
+      data: body
+    });
+    if (res.status >= 200 && res.status < 300) {
+      return typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
+    }
+    throw new Error(`HTTP ${res.status}`);
+  }
 
-const SAAVN_NODES = [
-  'https://saavn.dev/api/search/songs',
-  'https://jiosaavn-api-privatecvc2.vercel.app/search/songs'
-];
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
+// --- ПОИСК ПОЛНОГО ТРЕКА НАПРЯМУЮ С ТЕЛЕФОНА (YOUTUBE INNERTUBE + AUDIUS) ---
 const normalizeText = (s) =>
   (s || '')
     .toLowerCase()
@@ -221,7 +244,7 @@ const isStrictSongMatch = (candTitle, candArtist, targetArtist, targetTitle) => 
   const na = normalizeText(targetArtist);
   if (!nt) return false;
 
-  const banned = ['karaoke', 'караоке', 'cover', 'кавер', 'instrumental', 'минус', 'slowed', 'nightcore', '8d'];
+  const banned = ['karaoke', 'караоке', 'cover', 'кавер', 'instrumental', 'минус', 'slowed', 'nightcore', '8d', 'reaction', 'реакция'];
   for (const b of banned) {
     if (hay.includes(b) && !nt.includes(b)) return false;
   }
@@ -241,51 +264,194 @@ const isStrictSongMatch = (candTitle, candArtist, targetArtist, targetTitle) => 
   return true;
 };
 
+function extractVideoIdsFromYtSearch(data, artist, title) {
+  const ids = [];
+  const seen = new Set();
+
+  const walk = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (node.videoRenderer && node.videoRenderer.videoId) {
+      const vid = node.videoRenderer.videoId;
+      const vTitle = node.videoRenderer.title?.runs?.map((r) => r.text).join('') || '';
+      const vAuthor = node.videoRenderer.ownerText?.runs?.map((r) => r.text).join('') || '';
+      if (!seen.has(vid) && isStrictSongMatch(vTitle, vAuthor, artist, title)) {
+        seen.add(vid);
+        ids.push(vid);
+      }
+    }
+    if (node.musicResponsiveListItemRenderer) {
+      const flex = node.musicResponsiveListItemRenderer.flexColumns || [];
+      const vTitle = flex[0]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.map((r) => r.text).join('') || '';
+      const vAuthor = flex[1]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.map((r) => r.text).join('') || '';
+      const vid =
+        node.musicResponsiveListItemRenderer.playlistItemData?.videoId ||
+        node.musicResponsiveListItemRenderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId;
+      if (vid && !seen.has(vid) && isStrictSongMatch(vTitle, vAuthor, artist, title)) {
+        seen.add(vid);
+        ids.push(vid);
+      }
+    }
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+    } else {
+      Object.values(node).forEach(walk);
+    }
+  };
+
+  walk(data);
+  return ids.slice(0, 5);
+}
+
+async function resolveYtPlayerAudio(videoId) {
+  const clients = [
+    {
+      endpoint: 'https://music.youtube.com/youtubei/v1/player?prettyPrint=false',
+      userAgent: 'com.google.android.apps.youtube.music/6.42.52 (Linux; U; Android 14; en_US) gzip',
+      context: {
+        client: {
+          clientName: 'ANDROID_MUSIC',
+          clientVersion: '6.42.52',
+          androidSdkVersion: 34,
+          hl: 'ru',
+          gl: 'RU'
+        }
+      }
+    },
+    {
+      endpoint: 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false',
+      userAgent: 'com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X)',
+      context: {
+        client: {
+          clientName: 'IOS',
+          clientVersion: '19.29.1',
+          deviceModel: 'iPhone16,2',
+          hl: 'ru',
+          gl: 'RU'
+        }
+      }
+    },
+    {
+      endpoint: 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false',
+      userAgent: 'com.google.android.youtube/19.29.37 (Linux; U; Android 14; en_US) gzip',
+      context: {
+        client: {
+          clientName: 'ANDROID',
+          clientVersion: '19.29.37',
+          androidSdkVersion: 34,
+          hl: 'ru',
+          gl: 'RU'
+        }
+      }
+    }
+  ];
+
+  for (const cfg of clients) {
+    try {
+      const playerRes = await nativePostJson(
+        cfg.endpoint,
+        {
+          context: cfg.context,
+          videoId,
+          contentCheckOk: true,
+          racyCheckOk: true
+        },
+        {
+          'User-Agent': cfg.userAgent,
+          'X-YouTube-Client-Name': cfg.context.client.clientName === 'ANDROID_MUSIC' ? '21' : cfg.context.client.clientName === 'IOS' ? '5' : '3',
+          'X-YouTube-Client-Version': cfg.context.client.clientVersion
+        }
+      );
+
+      const formats = [
+        ...(playerRes?.streamingData?.adaptiveFormats || []),
+        ...(playerRes?.streamingData?.formats || [])
+      ];
+
+      // Выбираем прямой аудиопоток без шифрования signatureCipher (itag 140 m4a или webm audio)
+      const audioFormats = formats.filter(
+        (f) =>
+          f.url &&
+          !f.url.includes('.m3u8') &&
+          String(f.mimeType || '').startsWith('audio/')
+      );
+
+      if (audioFormats.length > 0) {
+        // Предпочитаем audio/mp4 (m4a / AAC), который идеально играет в Android WebView <audio>
+        audioFormats.sort((a, b) => {
+          const aMp4 = String(a.mimeType).includes('audio/mp4') ? 1 : 0;
+          const bMp4 = String(b.mimeType).includes('audio/mp4') ? 1 : 0;
+          if (aMp4 !== bMp4) return bMp4 - aMp4;
+          return (b.bitrate || 0) - (a.bitrate || 0);
+        });
+        return audioFormats[0].url;
+      }
+    } catch {}
+  }
+
+  return null;
+}
+
 async function resolveFullAudioDirect(artist, title) {
   const q = `${artist} - ${title}`.replace(/^[\s-]+|[\s-]+$/g, '');
 
-  // Канал 1: JioSaavn (полные 320kbps MP4/M4A мейнстрим-треки без блокировок)
-  for (const ep of SAAVN_NODES) {
-    try {
-      const body = await nativeGetJson(ep, { query: `${artist} ${title}`.trim(), limit: '5' });
-      const results = body?.data?.results || body?.results || [];
-      for (const item of results) {
-        const name = item.name || item.title || '';
-        let primary = item.primaryArtists || '';
-        if (item.artists?.primary) {
-          primary = item.artists.primary.map((a) => a.name).join(', ');
-        }
-        if (!isStrictSongMatch(name, primary, artist, title)) continue;
-        const dl = item.downloadUrl || [];
-        if (Array.isArray(dl) && dl.length > 0) {
-          const best = dl[dl.length - 1]?.url || dl[dl.length - 1]?.link;
-          if (best) return { url: best, label: 'Full HQ' };
-        }
+  // Канал 1: Прямой поиск через мобильный YouTube Music InnerTube API (с IP телефона без CORS!)
+  try {
+    const ytMusicSearch = await nativePostJson(
+      'https://music.youtube.com/youtubei/v1/search?prettyPrint=false',
+      {
+        context: {
+          client: {
+            clientName: 'WEB_REMIX',
+            clientVersion: '1.20240724.01.00',
+            hl: 'ru',
+            gl: 'RU'
+          }
+        },
+        query: q,
+        params: 'EgWKAQIIAWoKEAMQBBAJEAoQBQ%3D%3D'
+      },
+      {
+        Origin: 'https://music.youtube.com',
+        Referer: 'https://music.youtube.com/'
       }
-    } catch {}
-  }
+    );
 
-  // Канал 2: Piped / YouTube Music Audio (напрямую с IP телефона в Android APK)
-  for (const host of PIPED_NODES) {
-    try {
-      const s = await nativeGetJson(`${host}/search`, { q, filter: 'music_songs' });
-      const items = (s?.items || []).slice(0, 4);
-      for (const item of items) {
-        if (!isStrictSongMatch(item.title, item.uploaderName, artist, title)) continue;
-        const vidUrl = item.url || '';
-        const vidId = vidUrl.includes('v=') ? vidUrl.split('v=').pop() : vidUrl.replace(/^\//, '');
-        if (!vidId) continue;
-        const st = await nativeGetJson(`${host}/streams/${vidId}`);
-        const streams = (st?.audioStreams || []).filter((a) => a.url && !a.url.includes('.m3u8'));
-        if (streams.length > 0) {
-          streams.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
-          return { url: streams[0].url, label: 'Full Stream' };
-        }
+    const musicIds = extractVideoIdsFromYtSearch(ytMusicSearch, artist, title);
+    for (const vid of musicIds) {
+      const directUrl = await resolveYtPlayerAudio(vid);
+      if (directUrl) {
+        return { url: directUrl, label: 'YT Music Full' };
       }
-    } catch {}
-  }
+    }
+  } catch {}
 
-  // Канал 3: Audius Open Stream
+  // Канал 2: Обычный поиск YouTube InnerTube API
+  try {
+    const ytWebSearch = await nativePostJson(
+      'https://www.youtube.com/youtubei/v1/search?prettyPrint=false',
+      {
+        context: {
+          client: {
+            clientName: 'WEB',
+            clientVersion: '2.20240725.01.00',
+            hl: 'ru',
+            gl: 'RU'
+          }
+        },
+        query: `${q} official audio`
+      }
+    );
+
+    const webIds = extractVideoIdsFromYtSearch(ytWebSearch, artist, title);
+    for (const vid of webIds) {
+      const directUrl = await resolveYtPlayerAudio(vid);
+      if (directUrl) {
+        return { url: directUrl, label: 'YouTube Full' };
+      }
+    }
+  } catch {}
+
+  // Канал 3: Audius Open Stream (резерв)
   try {
     const au = await nativeGetJson('https://discoveryprovider.audius.co/v1/tracks/search', {
       query: `${artist} ${title}`.trim(),
@@ -297,7 +463,7 @@ async function resolveFullAudioDirect(artist, title) {
       if (isStrictSongMatch(tName, uName, artist, title) && item.id) {
         return {
           url: `https://discoveryprovider.audius.co/v1/tracks/${item.id}/stream`,
-          label: 'Full Audius'
+          label: 'Full Stream'
         };
       }
     }
